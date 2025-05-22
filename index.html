@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <title>Bubblify</title>
+  <link rel="icon" href="favicon.png" type="image/png" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     body {
@@ -14,6 +15,7 @@
       margin: 0;
     }
     .card {
+      position: relative;
       background: white;
       padding: 24px;
       border-radius: 16px;
@@ -21,6 +23,20 @@
       max-width: 600px;
       width: 100%;
       box-sizing: border-box;
+    }
+    .lang-toggle {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+    }
+    .lang-toggle button {
+      padding: 6px 12px;
+      font-size: 14px;
+      border: 1px solid #007BFF;
+      background: #fff;
+      color: #007BFF;
+      border-radius: 6px;
+      cursor: pointer;
     }
     h2 {
       text-align: center;
@@ -126,8 +142,20 @@
     ol {
       padding-left: 20px;
     }
-
-    /* Mobile responsiveness */
+    #instruction-steps {
+      list-style: none;
+      padding-left: 0;
+    }
+    #instruction-steps li {
+      position: relative;
+      left: 0.1em;
+      padding-left: 1.2em;
+    }
+    .list-num {
+      position: absolute;
+      left: 0;
+      font-weight: normal;
+    }
     @media (max-width: 480px) {
       .unit-button-container {
         flex-direction: column;
@@ -143,19 +171,21 @@
   </style>
 </head>
 <body>
+  <div class="card" id="capture-area">
+    <div class="lang-toggle">
+      <button onclick="toggleLanguage()" id="lang-btn"></button>
+    </div>
+    <h2 id="title"></h2>
 
-  <div class="card">
-    <h2>🫧 Magic Bubbles Mixer</h2>
-
-    <label for="amount">Solution Amount</label>
+    <label for="amount" id="label-amount"></label>
     <input type="number" id="amount" value="1" min="0.1" step="0.1">
 
     <div class="unit-button-container">
       <div class="unit-selection">
-        <label><input type="radio" name="unit" value="l" checked> Liter (L)</label>
-        <label><input type="radio" name="unit" value="ml"> Milliliter (ml)</label>
+        <label><input type="radio" name="unit" value="l" checked> <span id="label-liter"></span></label>
+        <label><input type="radio" name="unit" value="ml"> <span id="label-ml"></span></label>
       </div>
-      <button onclick="calculateSolution()">Calculate Ingredients</button>
+      <button onclick="calculateSolution()" id="calc-btn"></button>
     </div>
 
     <div class="divider"></div>
@@ -163,26 +193,116 @@
     <div class="result" id="result"></div>
 
     <div class="instructions">
-      <h3>🧪 Instructions</h3>
-      <ol>
-        <li>Pour the calculated amount of warm water into a large container.</li>
-        <li>Add the measured dish soap and stir gently to avoid bubbles.</li>
-        <li>Mix in the glycerin (or sugar/corn syrup).</li>
-        <li>Stir in the baking powder (optional).</li>
-        <li>Let the mixture rest for at least 1 hour or overnight for best results.</li>
-        <li>Enjoy making big and strong bubbles!</li>
-      </ol>
+      <h3 id="instructions-title"></h3>
+      <ol id="instruction-steps"></ol>
     </div>
   </div>
 
   <script>
+    const translations = {
+      en: {
+        title: '🫧 Magic Bubbles Mixer',
+        amountLabel: 'Solution Amount',
+        liter: 'Liter (L)',
+        ml: 'Milliliter (ml)',
+        button: 'Calculate Ingredients',
+        ingredientsTitle: '🧴 Required Ingredients',
+        restLine: 'Let the mixture rest for at least 1 hour for best bubbles!',
+        unitLiter: 'L',
+        unitMl: 'ml',
+        unitTbsp: 'tbsp',
+        unitTsp: 'tsp',
+        unitGm: 'g',
+        items: [
+          'Warm Water',
+          'Dish Soap',
+          'Glycerin (or Sugar/Corn Syrup)',
+          'Baking Powder (optional)'
+        ],
+        instructionsTitle: '🧪 Instructions',
+        instructions: [
+          'Pour the calculated amount of warm water into a large container.',
+          'Add the measured dish soap and stir gently to avoid bubbles.',
+          'Mix in the glycerin (or sugar/corn syrup).',
+          'Stir in the baking powder (optional).',
+          'Let the mixture rest for at least 1 hour or overnight for best results.',
+          'Enjoy making big and strong bubbles!'
+        ]
+      },
+      bn: {
+        title: '🫧 ম্যাজিক বাবলস মিক্সার',
+        amountLabel: 'সল্যুশনের পরিমাণ',
+        liter: 'লিটার (লি.)',
+        ml: 'মিলিলিটার (মি.লি.)',
+        button: 'উপাদান হিসাব করুন',
+        ingredientsTitle: '🧴 প্রয়োজনীয় উপাদান',
+        restLine: 'বড় ও স্থায়ী বাবলের জন্য মিশ্রণটি কমপক্ষে ১ ঘণ্টা রেখে দিন।',
+        unitLiter: 'লি.',
+        unitMl: 'মি.লি.',
+        unitTbsp: 'টেবিল চামচ',
+        unitTsp: 'চা চামচ',
+        unitGm: 'গ্রাম',
+        items: [
+          'কুসুম গরম পানি',
+          'ডিশ সোপ',
+          'গ্লিসারিন (অথবা চিনি/ভুট্টার সিরাপ)',
+          'বেকিং পাউডার (ঐচ্ছিক)'
+        ],
+        instructionsTitle: '🧪 নির্দেশাবলী',
+        instructions: [
+          'একটি বড় পাত্রে পরিমাণ মতো কুসুম গরম পানি নিন।',
+          'ডিশ সোপ যোগ করুন এবং ধীরে ধীরে নেড়ে মেশান যেন ফেনা না হয়।',
+          'গ্লিসারিন (অথবা চিনি/ভুট্টার সিরাপ) মেশান।',
+          'বেকিং পাউডার (ঐচ্ছিক) যোগ করে ভালোভাবে মিশিয়ে নিন।',
+          'কমপক্ষে ১ ঘণ্টা বা রাতভর রেখে দিন।',
+          'তারপর মজার বাবল তৈরি উপভোগ করুন!'
+        ]
+      }
+    };
+
+    let currentLang = 'en';
+
+    function toggleLanguage() {
+      currentLang = currentLang === 'en' ? 'bn' : 'en';
+      setLanguage();
+      calculateSolution();
+    }
+
+    function setLanguage() {
+      const t = translations[currentLang];
+      document.getElementById('title').innerText = t.title;
+      document.getElementById('label-amount').innerText = t.amountLabel;
+      document.getElementById('label-liter').innerText = t.liter;
+      document.getElementById('label-ml').innerText = t.ml;
+      document.getElementById('calc-btn').innerText = t.button;
+      document.getElementById('instructions-title').innerText = t.instructionsTitle;
+      document.getElementById('lang-btn').innerText = currentLang === 'en' ? 'বাংলা' : 'English';
+
+      document.getElementById('instruction-steps').innerHTML = t.instructions.map((text, index) => {
+        const num = currentLang === 'bn' ? convertToBanglaNumber(index + 1) : index + 1;
+        return `<li><span class="list-num">${num}.</span> ${text}</li>`;
+      }).join('');
+    }
+
+    function convertToBanglaNumber(str) {
+      const bnDigits = ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'];
+      return str.toString().replace(/[0-9]/g, d => bnDigits[d]);
+    }
+
     function formatVolume(value) {
-      return value >= 1000 ? `${(value / 1000).toFixed(1)} L` : `${value.toFixed(0)} mL`;
+      const t = translations[currentLang];
+      const formatted = value >= 1000 ? `${(value / 1000).toFixed(1)} ${t.unitLiter}` : `${value.toFixed(0)} ${t.unitMl}`;
+      return currentLang === 'bn' ? convertToBanglaNumber(formatted) : formatted;
+    }
+
+    function formatNumber(value) {
+      return currentLang === 'bn' ? convertToBanglaNumber(value.toString()) : value.toString();
     }
 
     function calculateSolution() {
       const amount = parseFloat(document.getElementById('amount').value);
       const unit = document.querySelector('input[name="unit"]:checked').value;
+      const t = translations[currentLang];
 
       if (isNaN(amount) || amount <= 0) {
         alert("Please enter a valid amount.");
@@ -191,7 +311,6 @@
 
       const totalMl = unit === "l" ? amount * 1000 : amount;
       const baseVolume = 1900;
-
       const multiplier = totalMl / baseVolume;
 
       const water = 1900 * multiplier;
@@ -202,22 +321,23 @@
       const bakingPowderTsp = bakingPowderGm / 5;
 
       const result = `
-        <h3>🧴 Required Ingredients</h3>
+        <h3>${t.ingredientsTitle}</h3>
         <ul>
-          <li><strong>Warm Water:</strong> ${formatVolume(water)}</li>
-          <li><strong>Dish Soap:</strong> ${formatVolume(dishSoap)}</li>
-          <li><strong>Glycerin (or Sugar/Corn Syrup):</strong> ${formatVolume(glycerinMl)} (${glycerinTbsp.toFixed(1)} tbsp)</li>
-          <li><strong>Baking Powder (optional):</strong> ${bakingPowderGm.toFixed(0)} g (${bakingPowderTsp.toFixed(1)} tsp)</li>
+          <li><strong>${t.items[0]}:</strong> ${formatVolume(water)}</li>
+          <li><strong>${t.items[1]}:</strong> ${formatVolume(dishSoap)}</li>
+          <li><strong>${t.items[2]}:</strong> ${formatVolume(glycerinMl)} (${formatNumber(glycerinTbsp.toFixed(1))} ${t.unitTbsp})</li>
+          <li><strong>${t.items[3]}:</strong> ${formatNumber(bakingPowderGm.toFixed(0))} ${t.unitGm} (${formatNumber(bakingPowderTsp.toFixed(1))} ${t.unitTsp})</li>
         </ul>
-        <p style="margin-top: 10px;">Let the mixture rest for at least 1 hour for best bubbles!</p>
+        <p style="margin-top: 10px;">${t.restLine}</p>
       `;
 
       document.getElementById('result').innerHTML = result;
-      document.getElementById('result').style.display = "block";
     }
 
-    window.onload = calculateSolution;
+    window.onload = () => {
+      setLanguage();
+      calculateSolution();
+    };
   </script>
-
 </body>
 </html>
